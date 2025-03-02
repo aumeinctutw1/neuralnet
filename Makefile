@@ -1,43 +1,45 @@
-CXX=clang++
-CXXFLAGS=-Wall -Wextra -std=c++20
-CXXLIBS=
-# needed building locally on Mac 
-MAC_INCLUDES = 
-MAC_LIBS=
+CXX = clang++
+CXXFLAGS = -Wall -Wextra -std=c++20
+CXXLIBS = # Add cross-platform libs here if needed
 
-APP_NAME=nn
-SOURCE_DIR=source
-BUILD_DIR=build
+# macOS-specific flags
+MAC_INCLUDES = -I/opt/homebrew/include
+MAC_LIB_PATH = -L/opt/homebrew/lib
+MAC_LIBS = -lsfml-graphics -lsfml-window -lsfml-system
 
-OS:=$(shell uname)
+APP_NAME = nn
+SOURCE_DIR = source
+BUILD_DIR = build
+
+OS := $(shell uname)
 
 ifeq ($(OS), Darwin)
-	TARGET=build_mac
+    TARGET = build_mac
 else
-	TARGET=build
+    TARGET = build
 endif
 
 all: $(TARGET)
 
-dirs: 
+dirs:
 	mkdir -p $(BUILD_DIR)
 
-# find all cpp files in the source dir
-SOURCES=$(wildcard $(SOURCE_DIR)/*.cpp)
-# rename all cpp files to object files in the build dir
-OBJS=$(patsubst $(SOURCE_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SOURCES))
+# Find all .cpp files in source dir
+SOURCES = $(wildcard $(SOURCE_DIR)/*.cpp)
 
+# Convert .cpp files to .o files in build dir
+OBJS = $(patsubst $(SOURCE_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SOURCES))
+
+# Generic build (non-macOS)
 build: $(OBJS)
-	$(CXX) $(FLAGS) $^ -o $(APP_NAME) $(CXXLIBS)
+	$(CXX) $(CXXFLAGS) $(CXXLIBS) $^ -o $(APP_NAME)
 
-# link object files in build dir to final executable
+# macOS build (uses macOS-specific flags)
 build_mac: $(OBJS)
-	$(CXX) $(MAC_INCLUDES) $(MAC_LIBS) -o $(APP_NAME) $(FLAGS) $^
+	$(CXX) $(CXXFLAGS) $(OBJS) $(MAC_LIB_PATH) $(MAC_LIBS) -o $(APP_NAME)
 
-# rule to build the object files
-# build the objects the "|" is used to tell make that dirs must exist
-# befor the target can be executed
-$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.cpp | dirs 
+# Compile source files to object files
+$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(MAC_INCLUDES) -c $< -o $@
 
 clean:
