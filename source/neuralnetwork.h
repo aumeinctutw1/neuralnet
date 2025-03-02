@@ -15,7 +15,8 @@ class NeuralNetwork {
 
         void train(std::vector<T> input, std::vector<T> target);
         std::vector<T> query(std::vector<T> input);
-
+        void saveModel(const std::string &path);
+        void loadModel(const std::string &path);
         void printweights(); 
 
     private:
@@ -56,6 +57,105 @@ NeuralNetwork<T>::NeuralNetwork(const std::vector<std::pair<int, std::string>> &
             true
         ));
     }
+}
+
+template <typename T>
+void NeuralNetwork<T>::loadModel(const std::string &path) {
+    /* load model from filesystem */
+    std::ifstream modelFile(path); 
+    if (!modelFile.is_open()) {
+        std::cerr << "Could not open file: " << path << std::endl;
+        throw std::runtime_error("Could not open file");
+    }
+
+    /* clear exisiting layers */
+    m_layers.clear();
+
+    /* read learning rate */
+    modelFile >> m_learningRate;
+
+    /* read number of layers */
+    int numLayers;
+    modelFile >> numLayers;
+
+    /* init the input layer */
+    int inputNeurons;
+    std::string inputActivation;
+    modelFile >> inputNeurons >> inputActivation;
+    m_layers.push_back(Layer<T>(
+        inputNeurons,
+        inputActivation,
+        {inputNeurons, inputNeurons},
+        false
+    )); 
+
+    /* create the hidden and output layers */
+    for (int i = 1; i < numLayers + 1; i++) {
+        int neurons;
+        std::string activation;
+        modelFile >> neurons >> activation;
+        m_layers.push_back(Layer<T>(
+            neurons,
+            activation,
+            {neurons, m_layers.at(i - 1).getNeurons()},
+            true
+        ));
+    }
+
+    /* read and set the weights for the hidden and output layer */
+    for (int i = 1; i < m_layers.size(); i++) {
+        std::vector<std::vector<T>> weights;
+        for (int j = 0; j < m_layers.at(i).getNeurons(); j++) {
+            std::vector<T> row;
+            for (int k = 0; k < m_layers.at(i - 1).getNeurons(); k++) {
+                T weight;
+                modelFile >> weight;
+                row.push_back(weight);
+            }
+            weights.push_back(row);
+        }
+        m_layers.at(i).setWeights(weights);
+    }
+}
+
+template <typename T>
+void NeuralNetwork<T>::saveModel(const std::string &path) {
+    std::ofstream modelFile(path);
+    if (!modelFile.is_open()) {
+        std::cerr << "Could not open file: " << path << std::endl;
+        throw std::runtime_error("Could not open file");
+    }
+
+    /* first line is the learningrate */
+    modelFile << m_learningRate << std::endl;
+
+    /* 
+    *   store number of layers and there activation function in the txt file 
+    */
+    modelFile << m_layers.size() - 1 << std::endl;
+    for (auto &layer : m_layers) {
+        modelFile << layer.getNeurons() << " " << layer.getActivation() << std::endl;
+    }
+    modelFile << std::endl;
+
+    /* store weights */
+    for (auto &layer : m_layers) {
+        /* skip the input layer */
+        if (layer.getActivation() == "none") {
+            continue;
+        }
+
+        for (auto &row : layer.getWeights()) {
+            for (auto &col : row) {
+                modelFile << col << " ";
+            }
+            modelFile << std::endl;
+        }
+        /* empty line as break between layers */
+        modelFile << std::endl;
+    }
+
+    modelFile.close();
 }
 
 template<typename T>

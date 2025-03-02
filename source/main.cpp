@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <filesystem>
 
 #include "neuralnetwork.h"
 #include "activations.h"
@@ -107,17 +108,25 @@ int main (int argc, const char *argv[]) {
 
         NeuralNetwork nn = NeuralNetwork<float>({{784, "none"}, {100, "sigmoid"}, {10, "sigmoid"}}, 0.3);
 
-        /* read training csv */
-        std::vector<std::vector<float>> training_data = readCSV<float>(training_csv);
-        
-        /* train the model */
-        for (int i = 0; i < training_data.size(); i++) {
-            std::vector<float> input = getInput<float>(training_data.at(i));
-            std::vector<float> target = getTargets<float>(training_data.at(i), 10);
-            nn.train(input, target);
+        if (std::filesystem::exists("model.txt")) {
+            std::cout << "Loading model from filesystem" << std::endl;
+            nn.loadModel("model.txt");
+        } else {
+            std::cout << "No model found, training new model" << std::endl;
+
+            /* read training csv */
+            std::vector<std::vector<float>> training_data = readCSV<float>(training_csv);
+            
+            /* train the model */
+            for (int i = 0; i < training_data.size(); i++) {
+                std::vector<float> input = getInput<float>(training_data.at(i));
+                std::vector<float> target = getTargets<float>(training_data.at(i), 10);
+                nn.train(input, target);
+            }
         }
 
         /* query the model with test data */
+        std::cout << "Querying model with test data" << std::endl;
         std::vector<std::vector<float>> test_data = readCSV<float>(test_csv);
         int scoreboard = 0; 
         for (int i = 0; i < test_data.size(); i++) {
@@ -132,6 +141,8 @@ int main (int argc, const char *argv[]) {
 
         /* print the accuracy */
         std::cout << "Accuracy: " << (scoreboard / (float)test_data.size()) * 100 << "%" << std::endl;
+
+        nn.saveModel("model.txt");
     } catch (const std::exception &e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
         return 1;
