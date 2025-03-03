@@ -5,7 +5,7 @@ CXXLIBS = # Add cross-platform libs here if needed
 # macOS-specific flags
 MAC_INCLUDES = -I/opt/homebrew/include
 MAC_LIB_PATH = -L/opt/homebrew/lib
-MAC_LIBS = -lsfml-graphics -lsfml-window -lsfml-system
+MAC_LIBS = 
 
 APP_NAME = nn
 SOURCE_DIR = source
